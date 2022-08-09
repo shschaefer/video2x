@@ -24,8 +24,10 @@ Last Modified: March 20, 2022
 
 import math
 import multiprocessing
+import os
 import queue
 import signal
+import subprocess
 import time
 from multiprocessing.managers import ListProxy
 from multiprocessing.sharedctypes import Synchronized
@@ -36,6 +38,7 @@ from realcugan_ncnn_vulkan_python import Realcugan
 from realsr_ncnn_vulkan_python import Realsr
 from srmd_ncnn_vulkan_python import Srmd
 from waifu2x_ncnn_vulkan_python import Waifu2x
+from .superres import SuperRes
 
 # fixed scaling ratios supported by the algorithms
 # that only support certain fixed scale ratios
@@ -44,6 +47,7 @@ ALGORITHM_FIXED_SCALING_RATIOS = {
     "srmd": [2, 3, 4],
     "realsr": [4],
     "realcugan": [1, 2, 3, 4],
+    "superres": [2, 4, 8],
 }
 
 ALGORITHM_CLASSES = {
@@ -51,21 +55,28 @@ ALGORITHM_CLASSES = {
     "srmd": Srmd,
     "realsr": Realsr,
     "realcugan": Realcugan,
+    "superres": SuperRes,
 }
 
 
 class Upscaler(multiprocessing.Process):
     def __init__(
         self,
+        instance_number: int,
         processing_queue: multiprocessing.Queue,
         processed_frames: ListProxy,
         pause: Synchronized,
     ) -> None:
         multiprocessing.Process.__init__(self)
         self.running = False
+        self.instance_number = instance_number
         self.processing_queue = processing_queue
         self.processed_frames = processed_frames
         self.pause = pause
+        
+        # Determine the number of GPUs in the system
+        # This is hard to do cross-vendor/platform - NVidia for now
+        self.num_gpus = self.num_nvidia_gpus()
 
         signal.signal(signal.SIGTERM, self._stop)
 
@@ -177,8 +188,9 @@ class Upscaler(multiprocessing.Process):
                         # create a new object if none are available
                         processor_object = processor_objects.get((algorithm, job))
                         if processor_object is None:
+                            gpuid = self.instance_number % self.num_gpus
                             processor_object = ALGORITHM_CLASSES[algorithm](
-                                noise=noise, scale=job
+                                gpuid=gpuid, noise=noise, scale=job
                             )
                             processor_objects[(algorithm, job)] = processor_object
 
@@ -205,3 +217,15 @@ class Upscaler(multiprocessing.Process):
 
     def _stop(self, _signal_number, _frame) -> None:
         self.running = False
+    
+    def num_nvidia_gpus(self) -> int:
+        try:
+            p = subprocess.Popen(["nvidia-smi","--list-gpus"], stdout=subprocess.PIPE)
+            stdout, stderror = p.communicate()
+        except Exception as error:
+            return 0
+        
+        output = stdout.decode('UTF-8')
+        lines = output.split(os.linesep)
+        num_devices = len(lines) - 1
+        return num_devices

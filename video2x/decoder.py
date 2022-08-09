@@ -178,7 +178,11 @@ class VideoDecoder(threading.Thread):
 
         # send SIGINT (2) to FFmpeg
         # this instructs it to finalize and exit
-        self.decoder.send_signal(signal.SIGINT)
+        # On Windows, we use the keyboard interrupt instead of SIGINT
+        if hasattr(signal, 'CTRL_C_EVENT'):
+            os.kill(self.decoder.pid, signal.CTRL_C_EVENT)
+        else:
+            self.decoder.send_signal(signal.SIGINT)
 
         # close PIPEs to prevent process from getting stuck
         self.decoder.stdout.close()

@@ -179,7 +179,11 @@ class VideoEncoder(threading.Thread):
 
         # send SIGINT (2) to FFmpeg
         # this instructs it to finalize and exit
-        self.encoder.send_signal(signal.SIGINT)
+        # On Windows, we use the keyboard interrupt instead of SIGINT
+        if hasattr(signal, 'CTRL_C_EVENT'):
+            os.kill(self.encoder.pid, signal.CTRL_C_EVENT)
+        else:
+            self.encoder.send_signal(signal.SIGINT)
 
         # close PIPEs to prevent process from getting stuck
         self.encoder.stdin.close()

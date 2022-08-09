@@ -35,6 +35,7 @@ Last Modified: June 17, 2019
 Editor: SAT3LL
 Last Modified: June 25, 2019
 
+
 Editor: 28598519a
 Last Modified: March 23, 2020
 """
@@ -50,7 +51,7 @@ import sys
 import time
 
 import ffmpeg
-from cv2 import cv2
+import cv2
 from loguru import logger
 from rich import print as rich_print
 from rich.console import Console
@@ -92,6 +93,7 @@ UPSCALING_ALGORITHMS = [
     "srmd",
     "realsr",
     "realcugan",
+    "superres",
 ]
 
 # algorithms available for frame interpolation tasks
@@ -244,7 +246,7 @@ class Video2X:
 
         # create processor processes
         for process_name in range(processes):
-            process = Processor(self.processing_queue, processed_frames, self.pause)
+            process = Processor(process_name, self.processing_queue, processed_frames, self.pause)
             process.name = str(process_name)
             process.daemon = True
             process.start()
@@ -269,7 +271,9 @@ class Video2X:
         self.task = self.progress.add_task(self.description, total=total_frames)
 
         # allow sending SIGUSR1 to pause/resume processing
-        signal.signal(signal.SIGUSR1, self._toggle_pause)
+        # TODO: Currently disabled on Windows
+        if sys.platform != "win32":
+            signal.signal(signal.SIGUSR1, self._toggle_pause)
 
         # enable global pause hotkey if it's supported
         if ENABLE_HOTKEY is True:

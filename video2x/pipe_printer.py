@@ -36,7 +36,8 @@ class PipePrinter(threading.Thread):
         self.running = False
 
         # set read mode to non-blocking
-        os.set_blocking(self.stderr.fileno(), False)
+        if sys.platform != "win32":
+            os.set_blocking(self.stderr.fileno(), False)
 
     def _print_output(self) -> None:
         output = self.stderr.read()
