@@ -93,7 +93,10 @@ UPSCALING_ALGORITHMS = [
     "srmd",
     "realsr",
     "realcugan",
-    "superres",
+    "superres-edsr",
+    "superres-espcn",
+    "superres-fsrcnn",
+    "superres-lapsrn",
 ]
 
 # algorithms available for frame interpolation tasks

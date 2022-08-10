@@ -47,7 +47,10 @@ ALGORITHM_FIXED_SCALING_RATIOS = {
     "srmd": [2, 3, 4],
     "realsr": [4],
     "realcugan": [1, 2, 3, 4],
-    "superres": [2, 4, 8],
+    "edsr": [2, 3, 4],
+    "espcn": [2, 3, 4],
+    "fsrcnn": [2, 3, 4],
+    "lapsrn": [2, 4, 8],
 }
 
 ALGORITHM_CLASSES = {
@@ -145,9 +148,17 @@ class Upscaler(multiprocessing.Process):
                     output_scale = max(output_width / width, output_height / height)
 
                     # select the optimal algorithm scaling ratio to use
-                    supported_scaling_ratios = sorted(
-                        ALGORITHM_FIXED_SCALING_RATIOS[algorithm]
-                    )
+                    # split out the model parameter if the algorithm is SuperRes
+                    algo_model = None
+                    if algorithm.startswith("superres"):
+                        algorithm, algo_model = algorithm.split("-", 2)
+                        supported_scaling_ratios = sorted(
+                            ALGORITHM_FIXED_SCALING_RATIOS[algo_model]
+                        )
+                    else:
+                        supported_scaling_ratios = sorted(
+                            ALGORITHM_FIXED_SCALING_RATIOS[algorithm]
+                        )
 
                     remaining_scaling_ratio = math.ceil(output_scale)
                     scaling_jobs = []
@@ -189,9 +200,10 @@ class Upscaler(multiprocessing.Process):
                         processor_object = processor_objects.get((algorithm, job))
                         if processor_object is None:
                             gpuid = self.instance_number % self.num_gpus
-                            processor_object = ALGORITHM_CLASSES[algorithm](
-                                gpuid=gpuid, noise=noise, scale=job
-                            )
+                            algo_params = dict (gpuid=gpuid, noise=noise, scale=job)
+                            if algorithm == "superres":
+                                algo_params.update(model=algo_model)
+                            processor_object = ALGORITHM_CLASSES[algorithm](**algo_params)
                             processor_objects[(algorithm, job)] = processor_object
 
                         # process the image with the selected algorithm

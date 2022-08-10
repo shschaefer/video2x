@@ -32,26 +32,18 @@ class SuperRes:
         gpuid: int = 0,
         noise: int = -1,
         scale: int = 2,
+        model: str = "lapsrn",
         **kwargs,
     ) -> None:
         self.version = 1.0
         assert gpuid >= -1, "gpuid must be >= -1"
         assert noise in range(-1, 4), "noise must be 1-3"
-        assert scale in [2, 4, 8], "scale must be 2, 4 or 8"
+        assert scale in [2, 3, 4, 8], "scale must be 2, 3, 4 or 8"
+        assert model in ["edsr", "espcn", "fsrcnn", "lapsrn"], "model must be one of edsr, espcn, fsrcnn or lapsrn"
         
         self.sr = cv2.dnn_superres.DnnSuperResImpl_create()
-        print("LapSRN: {n} {s}".format(n=noise, s=scale))
-        
-        if scale == 2:
-            self.sr.readModel("video2x/models/LapSRN_x2.pb")
-            self.sr.setModel("lapsrn", 2)
-        elif scale == 4:
-            self.sr.readModel("video2x/models/LapSRN_x4.pb")
-            self.sr.setModel("lapsrn", 4)
-        elif scale == 8:
-            self.sr.readModel("video2x/models/LapSRN_x8.pb")
-            self.sr.setModel("lapsrn", 8)\
-
+        self.sr.readModel("video2x/models/{m}_x{s}.pb".format(m=model,s=scale))
+        self.sr.setModel(model, scale)
         self.sr.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
         self.sr.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
         
