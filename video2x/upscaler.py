@@ -116,7 +116,8 @@ class Upscaler(multiprocessing.Process):
                     continue
 
                 difference_ratio = 0
-                if image0 is not None:
+                # Don't bother to caclulate the ratio if the threshold is off
+                if image0 is not None and difference_threshold > 0:
                     difference = ImageChops.difference(image0, image1)
                     difference_stat = ImageStat.Stat(difference)
                     difference_ratio = (

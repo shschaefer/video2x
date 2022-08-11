@@ -39,12 +39,14 @@ ALGORITHM_CLASSES = {"rife": Rife}
 class Interpolator(multiprocessing.Process):
     def __init__(
         self,
+        instance_number: int,
         processing_queue: multiprocessing.Queue,
         processed_frames: ListProxy,
         pause: Synchronized,
     ) -> None:
         multiprocessing.Process.__init__(self)
         self.running = False
+        self.instance_number = instance_number
         self.processing_queue = processing_queue
         self.processed_frames = processed_frames
         self.pause = pause
