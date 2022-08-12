@@ -61,6 +61,7 @@ class VideoDecoder(threading.Thread):
         processing_queue: multiprocessing.Queue,
         processing_settings: tuple,
         pause: Synchronized,
+        deinterlace=False,
         ignore_max_image_pixels=True,
     ) -> None:
         threading.Thread.__init__(self)
@@ -77,9 +78,12 @@ class VideoDecoder(threading.Thread):
             Image.MAX_IMAGE_PIXELS = None
 
         self.exception = None
+        pipeline = ffmpeg.input(input_path, r=frame_rate)["v"]
+        if deinterlace :
+            pipeline = pipeline.filter('yadif')
         self.decoder = subprocess.Popen(
             ffmpeg.compile(
-                ffmpeg.input(input_path, r=frame_rate)["v"]
+                pipeline                
                 .output("pipe:1", format="rawvideo", pix_fmt="rgb24", vsync="cfr")
                 .global_args("-hide_banner")
                 .global_args("-nostats")

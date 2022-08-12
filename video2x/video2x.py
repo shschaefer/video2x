@@ -195,6 +195,7 @@ class Video2X:
         mode: str,
         processes: int,
         processing_settings: tuple,
+        deinterlace=False,
     ) -> None:
 
         # record original STDOUT and STDERR for restoration
@@ -229,6 +230,7 @@ class Video2X:
             self.processing_queue,
             processing_settings,
             self.pause,
+            deinterlace=deinterlace,
         )
         self.decoder.start()
 
@@ -397,6 +399,7 @@ class Video2X:
         processes: int,
         threshold: float,
         algorithm: str,
+        deinterlace=False
     ) -> None:
 
         # get basic video information
@@ -433,6 +436,7 @@ class Video2X:
                 threshold,
                 algorithm,
             ),
+            deinterlace=deinterlace,
         )
 
     def interpolate(
@@ -521,6 +525,7 @@ def parse_arguments() -> argparse.Namespace:
     upscale.add_argument("-w", "--width", type=int, help="output width")
     upscale.add_argument("-h", "--height", type=int, help="output height")
     upscale.add_argument("-n", "--noise", type=int, help="denoise level", default=3)
+    upscale.add_argument("-d", "--deinterlace", help="deinterlace frames", action="store_true")
     upscale.add_argument(
         "-a",
         "--algorithm",
@@ -626,6 +631,7 @@ def main() -> int:
                 args.processes,
                 args.threshold,
                 args.algorithm,
+                args.deinterlace,
             )
 
         elif args.action == "interpolate":
